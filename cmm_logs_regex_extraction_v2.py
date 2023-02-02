@@ -18,65 +18,82 @@ import pandas as pd
 import re
 import os
 import glob
-
-filepath = 'C:\\Users\\sam.woodbeck\\Desktop\\python_repo\\cmm_logs_regex_extraction\\log_files\\'  #hard coded
-log_files = glob.glob(filepath + '/*.log')  #creates a list with the filepath+name of each log file
-pattern = '((563)\d{7})'  #RegEx pattern that searches for any 10-digit strings that begin with '563'.
-df = pd.DataFrame()  #dataframe that will hold the results
-#The followin blank lists will be populate in the for loops, then added to a dataframe at the end
-li_filenames = []
-li_filepaths = []
-li_saleslines = []
-li_plant = []
-li_machine = []
-li_date = []
-print('Set up cell run complete!')
+import argparse
 
 
-#%% Open the log into Python
-#for loop to get a file name for each string in log_files list
-for log_file in log_files:
-    #writes the file name to filename
-    filename = os.path.basename(log_file)
-    
-    #with loop to open each log file
-    with open(filepath + filename, 'r') as ff:
-        #Read the file contents and generate a list with each line stored as a string
-        lines = ff.readlines()
-        
-        #for loop for each string in a given log file
-        for line in lines:
-            #looks at each string to find a sales line match
-            match = re.search(pattern, line)
-            
-            #how to handle matches
-            if match:
-                #writes data for each match
-                sales_line = match.group()
-                simplefilename = filename.replace('.log','')
-                plant = simplefilename[0:3]
-                machine = simplefilename[4:9]
-                date = simplefilename[12:]
-                li_filepaths.append(filepath + filename)
-                li_filenames.append(simplefilename)
-                li_saleslines.append(sales_line)
-                li_plant.append(plant)
-                li_machine.append(machine)
-                li_date.append(date)
 
-#after for loops are complete, puts each list into a dataframe.  Preferable to appending each line to a dataframe, as the pd.append function is deprecated.
-df['log_filepath'] = li_filepaths
-df['log_name'] = li_filenames
-df['sales_line'] = li_saleslines
-df['plant'] = li_plant
-df['machine'] = li_machine
-df['date'] = li_date
+def logs_to_csv(input_filepath,output_filepath):
+    log_files = glob.glob(input_filepath + '/*.log')  # creates a list with the filepath+name of each log file
+    pattern = '((563)\d{7})'  # RegEx pattern that searches for any 10-digit strings that begin with '563'.
+    df = pd.DataFrame()  # dataframe that will hold the results
+    # The followin blank lists will be populate in the for loops, then added to a dataframe at the end
+    li_filenames = []
+    li_filepaths = []
+    li_saleslines = []
+    li_plant = []
+    li_machine = []
+    li_date = []
+    print('Set up cell run complete!')
+    #%% Open the log into Python
+    #for loop to get a file name for each string in log_files list
+    for log_file in log_files:
+        #writes the file name to filename
+        filename = os.path.basename(log_file)
 
-#Removes duplicate sales line ID records, keeping the first record found.
-df = df.drop_duplicates()
+        #with loop to open each log file
+        with open(os.path.join(input_filepath, filename), 'r') as ff:
+            #Read the file contents and generate a list with each line stored as a string
+            lines = ff.readlines()
 
-print('Execution cell run complete!')
+            #for loop for each string in a given log file
+            for line in lines:
+                #looks at each string to find a sales line match
+                match = re.search(pattern, line)
 
-#%% Write results to csv file
-df.to_csv('CMM_logs.csv')
-print('Write cell run complete!')
+                #how to handle matches
+                if match:
+                    #writes data for each match
+                    sales_line = match.group()
+                    simplefilename = filename.replace('.log','')
+                    plant = simplefilename[0:3]
+                    machine = simplefilename[4:9]
+                    date = simplefilename[12:]
+                    li_filepaths.append(os.path.join(input_filepath, filename))
+                    li_filenames.append(simplefilename)
+                    li_saleslines.append(sales_line)
+                    li_plant.append(plant)
+                    li_machine.append(machine)
+                    li_date.append(date)
+
+    #after for loops are complete, puts each list into a dataframe.  Preferable to appending each line to a dataframe, as the pd.append function is deprecated.
+    df['log_filepath'] = li_filepaths
+    df['log_name'] = li_filenames
+    df['sales_line'] = li_saleslines
+    df['plant'] = li_plant
+    df['machine'] = li_machine
+    df['date'] = li_date
+
+    #Removes duplicate sales line ID records, keeping the first record found.
+    df = df.drop_duplicates()
+
+    print('Execution cell run complete!')
+
+    #%% Write results to csv file
+    df.to_csv(output_filepath)
+    print('Write cell run complete!')
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+
+
+    parser.add_argument('-i',
+                        '--input_filepath',
+                        type=str,
+                        default='C:\\Users\\sam.woodbeck\\Desktop\\python_repo\\cmm_logs_regex_extraction\\log_files\\',
+                        help='absolute path to logs location')
+    parser.add_argument('-o', '--output_filepath', type=str, default='CMM_logs.csv', help='output path to the CSV file')
+    args = parser.parse_args()
+
+    logs_to_csv(args.input_filepath,
+                args.output_filepath)
